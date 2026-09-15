@@ -1,0 +1,289 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  INITIAL_EXAMS_CONFIG, 
+  INITIAL_NOTICES, 
+  COLLEGE_INFO 
+} from './config/examData';
+import { SubjectExam, Department, ClassLevel, ExamStatus } from './types';
+import { Header } from './components/Header';
+import { NoticeBoard } from './components/NoticeBoard';
+import { FilterBar } from './components/FilterBar';
+import { SubjectCard } from './components/SubjectCard';
+import { AdminConfigModal } from './components/AdminConfigModal';
+import { ExamInstructionsModal } from './components/ExamInstructionsModal';
+import { Footer } from './components/Footer';
+import { generateStandaloneHtml } from './utils/generateStandaloneHtml';
+import { 
+  Sparkles, 
+  RotateCcw, 
+  Layers, 
+  Search, 
+  ExternalLink, 
+  CheckCircle2, 
+  ShieldAlert,
+  FileDown
+} from 'lucide-react';
+
+const LOCAL_STORAGE_KEY = 'mc_exam_hub_config_v1';
+
+export default function App() {
+  // Load exams from localStorage or default configuration
+  const [exams, setExams] = useState<SubjectExam[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to load saved exams config from localStorage', e);
+    }
+    return INITIAL_EXAMS_CONFIG;
+  });
+
+  const [notices] = useState(INITIAL_NOTICES);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedDept, setSelectedDept] = useState<Department | 'All'>('All');
+  const [selectedClass, setSelectedClass] = useState<ClassLevel | 'All'>('All');
+  const [selectedStatus, setSelectedStatus] = useState<ExamStatus | 'All'>('All');
+
+  // Modals
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isGuidelinesOpen, setIsGuidelinesOpen] = useState<boolean>(false);
+  const [targetExamIdForEdit, setTargetExamIdForEdit] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Save to localStorage whenever exams state changes
+  const handleSaveExams = (updated: SubjectExam[]) => {
+    setExams(updated);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+      showToast('Config updated! Google Form links and statuses saved.');
+    } catch (e) {
+      console.error('Could not save to localStorage', e);
+    }
+  };
+
+  const handleResetExams = () => {
+    if (confirm('Reset all exam links and statuses to original Milestone College defaults?')) {
+      setExams(INITIAL_EXAMS_CONFIG);
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      showToast('Reset to default Milestone College configuration.');
+    }
+  };
+
+  const handleEditSingleExam = (exam: SubjectExam) => {
+    setTargetExamIdForEdit(exam.id);
+    setIsAdminOpen(true);
+  };
+
+  // Download Standalone HTML file with the active configuration
+  const handleDownloadStandalone = () => {
+    const htmlContent = generateStandaloneHtml(exams, notices);
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'milestone-college-exam-hub.html';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Downloaded complete standalone single HTML file!');
+  };
+
+  // Counts
+  const liveExamsCount = useMemo(() => {
+    return exams.filter((e) => e.status === 'Live Now').length;
+  }, [exams]);
+
+  // Filtered list
+  const filteredExams = useMemo(() => {
+    return exams.filter((exam) => {
+      const matchDept = selectedDept === 'All' || exam.department === selectedDept;
+      const matchClass = selectedClass === 'All' || exam.classLevel === selectedClass || exam.classLevel === 'All Classes';
+      const matchStatus = selectedStatus === 'All' || exam.status === selectedStatus;
+      
+      const q = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        exam.title.toLowerCase().includes(q) ||
+        exam.code.toLowerCase().includes(q) ||
+        exam.department.toLowerCase().includes(q) ||
+        (exam.paper && exam.paper.toLowerCase().includes(q)) ||
+        exam.questionType.toLowerCase().includes(q);
+
+      return matchDept && matchClass && matchStatus && matchSearch;
+    });
+  }, [exams, selectedDept, selectedClass, selectedStatus, searchQuery]);
+
+  const handleResetFilters = () => {
+    setSelectedDept('All');
+    setSelectedClass('All');
+    setSelectedStatus('All');
+    setSearchQuery('');
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans selection:bg-blue-600 selection:text-white">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2 animate-fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header / Navbar */}
+      <Header
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        liveExamsCount={liveExamsCount}
+        onOpenAdmin={() => {
+          setTargetExamIdForEdit(null);
+          setIsAdminOpen(true);
+        }}
+        onOpenInstructions={() => setIsGuidelinesOpen(true)}
+        onDownloadStandalone={handleDownloadStandalone}
+      />
+
+      {/* Notice Board Section */}
+      <NoticeBoard
+        notices={notices}
+        onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+      />
+
+      {/* Quick Department / Portal Intro Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-1 w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800">Academic Hub:</span>
+            <span>HSC Term Examinations & Virtual Assessments</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              {liveExamsCount} Active Form{liveExamsCount !== 1 ? 's' : ''}
+            </span>
+            <span className="text-slate-300">|</span>
+            <span>{exams.length} Total Subjects</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <FilterBar
+        selectedDept={selectedDept}
+        onDeptChange={setSelectedDept}
+        selectedClass={selectedClass}
+        onClassChange={setSelectedClass}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        totalCount={exams.length}
+        filteredCount={filteredExams.length}
+        onResetFilters={handleResetFilters}
+      />
+
+      {/* Subject Grid / Exam Hub Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex-1 w-full">
+        {filteredExams.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredExams.map((exam) => (
+              <SubjectCard
+                key={exam.id}
+                exam={exam}
+                onEditExam={handleEditSingleExam}
+              />
+            ))}
+          </div>
+        ) : (
+          /* Empty Search / Filter State */
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs my-6">
+            <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center mx-auto mb-3">
+              <Search className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">No matching subjects found</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              We couldn't find any exams matching your search "{searchQuery}" with the current filters.
+            </p>
+            <button
+              onClick={handleResetFilters}
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-semibold transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Clear Search & Filters</span>
+            </button>
+          </div>
+        )}
+
+        {/* Quick Helper Banner for Teachers / Admins */}
+        <div className="mt-10 p-5 bg-gradient-to-r from-blue-50 via-slate-50 to-emerald-50 rounded-2xl border border-blue-200/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-blue-700 text-white text-[10px] font-bold uppercase tracking-wider">
+                Teacher & Admin Tools
+              </span>
+              <h4 className="font-bold text-sm text-slate-900">
+                Need to link your Google Form or change exam timings?
+              </h4>
+            </div>
+            <p className="text-xs text-slate-600">
+              Easily update Google Form URLs and subject status using the live config manager, or download the self-contained single HTML file for offline distribution.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => {
+                setTargetExamIdForEdit(null);
+                setIsAdminOpen(true);
+              }}
+              className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+            >
+              Open Link Manager
+            </button>
+
+            <button
+              onClick={handleDownloadStandalone}
+              className="px-3.5 py-2 bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-2xs"
+            >
+              <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Download HTML</span>
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <Footer
+        onOpenGuidelines={() => setIsGuidelinesOpen(true)}
+        onOpenAdmin={() => {
+          setTargetExamIdForEdit(null);
+          setIsAdminOpen(true);
+        }}
+      />
+
+      {/* Admin / Link Config Modal */}
+      <AdminConfigModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        exams={exams}
+        onSaveExams={handleSaveExams}
+        onResetExams={handleResetExams}
+        targetExamId={targetExamIdForEdit}
+        onDownloadStandalone={handleDownloadStandalone}
+      />
+
+      {/* Exam Instructions / Guidelines Modal */}
+      <ExamInstructionsModal
+        isOpen={isGuidelinesOpen}
+        onClose={() => setIsGuidelinesOpen(false)}
+      />
+    </div>
+  );
+}

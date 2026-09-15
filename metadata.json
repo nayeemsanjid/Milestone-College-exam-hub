@@ -1,0 +1,6 @@
+{
+  "name": "Milestone College Exam Hub",
+  "description": "Modern and responsive online exam portal for Milestone College students to access live exams, subject schedules, and Google Form links.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
