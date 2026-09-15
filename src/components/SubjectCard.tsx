@@ -20,9 +20,10 @@ import { SubjectExam } from '../types';
 interface SubjectCardProps {
   exam: SubjectExam;
   onEditExam: (exam: SubjectExam) => void;
+  isAdmin?: boolean;
 }
 
-export const SubjectCard: React.FC<SubjectCardProps> = ({ exam, onEditExam }) => {
+export const SubjectCard: React.FC<SubjectCardProps> = ({ exam, onEditExam, isAdmin = false }) => {
   const [copied, setCopied] = useState<boolean>(false);
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -106,15 +107,17 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({ exam, onEditExam }) =>
                 Code: {exam.code}
               </span>
 
-              {/* Quick Edit Icon for Teachers/Admins */}
-              <button
-                onClick={() => onEditExam(exam)}
-                className="p-1 rounded text-slate-400 hover:text-blue-700 hover:bg-blue-50 transition-colors opacity-70 group-hover:opacity-100"
-                title="Edit Google Form Link or Details"
-                aria-label={`Edit ${exam.title} exam details`}
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-              </button>
+              {/* Quick Edit Icon - Only visible for Admin */}
+              {isAdmin && (
+                <button
+                  onClick={() => onEditExam(exam)}
+                  className="p-1 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                  title="Edit Google Form Link or Details"
+                  aria-label={`Edit ${exam.title} exam details`}
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -196,6 +199,18 @@ export const SubjectCard: React.FC<SubjectCardProps> = ({ exam, onEditExam }) =>
 
         {/* Action Button: Start Exam (Opens Google Form) */}
         <div className="pt-3 border-t border-slate-100 mt-2">
+          {/* Admin Customise/Edit Link Action */}
+          {isAdmin && (
+            <button
+              id={`btn-customise-link-${exam.id}`}
+              onClick={() => onEditExam(exam)}
+              className="w-full mb-2.5 py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/90 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+              <span>Customise / Edit Link</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-2">
             {/* Primary Action Button */}
             {isLive ? (

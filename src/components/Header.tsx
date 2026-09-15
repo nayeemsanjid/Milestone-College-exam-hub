@@ -19,6 +19,8 @@ interface HeaderProps {
   onOpenAdmin: () => void;
   onOpenInstructions: () => void;
   onDownloadStandalone: () => void;
+  isAdmin?: boolean;
+  onAdminLogoutClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdmin,
   onOpenInstructions,
   onDownloadStandalone,
+  isAdmin = false,
+  onAdminLogoutClick,
 }) => {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -125,14 +129,16 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <HelpCircle className="w-5 h-5 text-blue-700" />
               </button>
-              <button
-                onClick={onOpenAdmin}
-                className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium text-xs flex items-center gap-1"
-                title="Edit Links / Admin Config"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span>Config</span>
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={onOpenAdmin}
+                  className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium text-xs flex items-center gap-1"
+                  title="Edit Links / Admin Config"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>Config</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -181,16 +187,18 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Exam Rules</span>
               </button>
 
-              {/* Admin Link Config Button */}
-              <button
-                id="btn-admin-config"
-                onClick={onOpenAdmin}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg shadow-xs transition-colors"
-                title="Edit Google Form Links and Status"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Edit Links</span>
-              </button>
+              {/* Admin Link Config Button - Only visible when Admin is logged in */}
+              {isAdmin && (
+                <button
+                  id="btn-admin-config"
+                  onClick={onOpenAdmin}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg shadow-xs transition-colors"
+                  title="Edit Google Form Links and Status"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Edit Links</span>
+                </button>
+              )}
 
               {/* Standalone HTML Download Button */}
               <button

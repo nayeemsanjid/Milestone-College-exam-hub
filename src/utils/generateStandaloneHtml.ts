@@ -96,7 +96,7 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
           </div>
         </div>
 
-        <!-- Search Bar -->
+        <!-- Search Bar & Actions -->
         <div class="flex items-center gap-3 w-full md:w-auto">
           <div class="relative flex-1 md:w-80">
             <input 
@@ -116,6 +116,23 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
             Exam Rules
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Hidden Admin Active Bar (Only visible when logged in) -->
+    <div id="admin-active-bar" class="hidden bg-slate-900 text-white px-4 py-2 border-t border-blue-900 text-xs shadow-inner">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="font-bold text-emerald-400">Admin Mode Active:</span>
+          <span class="text-slate-300">You can now customize Google Form URLs and exam statuses on any subject card.</span>
+        </div>
+        <button 
+          onclick="handleAdminLogout()"
+          class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-rose-300 rounded font-semibold text-xs transition-colors"
+        >
+          Exit Admin Mode
+        </button>
       </div>
     </div>
   </header>
@@ -149,50 +166,53 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
         </div>
         <button 
           onclick="openGuidelinesModal()"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all whitespace-nowrap self-start md:self-center"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors whitespace-nowrap shadow-xs"
         >
-          View Instructions ↗
+          View Full Guidelines
         </button>
       </div>
     </div>
   </section>
 
   <!-- =========================================================================
-       FILTER BAR (DEPARTMENTS, CLASSES, STATUS)
+       FILTER BAR & DEPARTMENT SELECTOR
        ========================================================================= -->
-  <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-5 w-full">
-    <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3">
-      <!-- Department Selector -->
-      <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
-        <div class="flex flex-wrap items-center gap-1.5" id="department-filters">
-          <button onclick="setFilterDept('All')" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-700 text-white" data-dept="All">All Subjects</button>
-          <button onclick="setFilterDept('Science')" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200" data-dept="Science">Science</button>
-          <button onclick="setFilterDept('Commerce')" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200" data-dept="Commerce">Commerce</button>
-          <button onclick="setFilterDept('Arts')" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200" data-dept="Arts">Humanities / Arts</button>
-          <button onclick="setFilterDept('Compulsory')" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200" data-dept="Compulsory">Compulsory</button>
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-2 w-full">
+    <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-4">
+      <!-- Departments -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Department:</span>
+          <button onclick="setFilterDept('All')" data-dept="All" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-700 text-white">All Subjects</button>
+          <button onclick="setFilterDept('Science')" data-dept="Science" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Science</button>
+          <button onclick="setFilterDept('Commerce')" data-dept="Commerce" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Commerce</button>
+          <button onclick="setFilterDept('Arts')" data-dept="Arts" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Arts</button>
+          <button onclick="setFilterDept('Compulsory')" data-dept="Compulsory" class="filter-dept-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Compulsory</button>
         </div>
-        <span id="subject-count" class="text-xs text-slate-500 font-medium">Showing 0 subjects</span>
+
+        <!-- Class Filter -->
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-slate-400 font-medium">Class:</span>
+          <div class="bg-slate-100 p-1 rounded-lg flex items-center gap-1">
+            <button onclick="setFilterClass('All')" data-class="All" class="filter-class-btn px-2.5 py-1 rounded-md font-bold bg-white text-slate-900 shadow-xs">All</button>
+            <button onclick="setFilterClass('Class 11')" data-class="Class 11" class="filter-class-btn px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Class 11</button>
+            <button onclick="setFilterClass('Class 12')" data-class="Class 12" class="filter-class-btn px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Class 12</button>
+          </div>
+        </div>
       </div>
 
-      <!-- Class & Status Selector -->
-      <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+      <!-- Secondary Row: Status Pills -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
         <div class="flex items-center gap-2">
-          <span class="text-slate-500 font-semibold">Class:</span>
-          <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="class-filters">
-            <button onclick="setFilterClass('All')" class="filter-class-btn px-2.5 py-1 rounded-md font-bold bg-white text-slate-900 shadow-xs" data-class="All">All Classes</button>
-            <button onclick="setFilterClass('Class 11')" class="filter-class-btn px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900" data-class="Class 11">Class 11</button>
-            <button onclick="setFilterClass('Class 12')" class="filter-class-btn px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900" data-class="Class 12">Class 12</button>
-          </div>
+          <span class="text-slate-400 font-medium">Status:</span>
+          <button onclick="setFilterStatus('All')" data-status="All" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-900 text-white border-slate-900 font-semibold">All</button>
+          <button onclick="setFilterStatus('Live Now')" data-status="Live Now" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100">Live Now</button>
+          <button onclick="setFilterStatus('Upcoming')" data-status="Upcoming" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100">Upcoming</button>
+          <button onclick="setFilterStatus('Completed')" data-status="Completed" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100">Completed</button>
         </div>
 
-        <div class="flex items-center gap-2">
-          <span class="text-slate-500 font-semibold">Status:</span>
-          <div class="flex flex-wrap gap-1.5" id="status-filters">
-            <button onclick="setFilterStatus('All')" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-900 text-white border-slate-900 font-semibold" data-status="All">All</button>
-            <button onclick="setFilterStatus('Live Now')" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100" data-status="Live Now">● Live Now</button>
-            <button onclick="setFilterStatus('Upcoming')" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100" data-status="Upcoming">Upcoming</button>
-            <button onclick="setFilterStatus('Completed')" class="filter-status-btn px-2.5 py-1 rounded-lg border bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100" data-status="Completed">Completed</button>
-          </div>
+        <div id="subject-count" class="text-slate-400 font-medium text-xs">
+          Showing subjects
         </div>
       </div>
     </div>
@@ -212,7 +232,7 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
   </main>
 
   <!-- =========================================================================
-       FOOTER
+       FOOTER (Includes Admin Login for Faculty)
        ========================================================================= -->
   <footer class="bg-slate-900 text-slate-300 mt-12 border-t border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
@@ -231,17 +251,130 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
           <p class="text-xs text-slate-400 mt-1">Email: info@milestonecollege.edu.bd</p>
         </div>
         <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-2">Notice & Guidelines</h4>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            Students must use valid Roll and Registration numbers. One response per Google Form is strictly enforced.
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-2">Notice & Administration</h4>
+          <p class="text-xs text-slate-400 leading-relaxed mb-3">
+            Students must use valid Roll numbers. One response per Google Form is strictly enforced.
           </p>
+          <!-- Admin Login Trigger in Footer -->
+          <div id="footer-admin-login-container">
+            <button 
+              id="btn-footer-admin-login"
+              onclick="openAdminLoginModal()" 
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors"
+            >
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+              <span>Admin Login</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
-    <div class="bg-slate-950 py-3.5 px-4 text-center text-xs text-slate-500 border-t border-slate-800/60">
-      &copy; 2026 Milestone College. All rights reserved.
+    <div class="bg-slate-950 py-3.5 px-4 text-center text-xs text-slate-500 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between max-w-7xl mx-auto">
+      <div>&copy; 2026 Milestone College. All rights reserved.</div>
+      <div class="mt-2 sm:mt-0 flex items-center gap-3">
+        <span>HSC Assessment Cell</span>
+        <span>•</span>
+        <button onclick="openAdminLoginModal()" class="hover:text-slate-400 text-slate-500">Faculty Login</button>
+      </div>
     </div>
   </footer>
+
+  <!-- =========================================================================
+       ADMIN LOGIN MODAL
+       ========================================================================= -->
+  <div id="admin-login-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 border border-slate-200 text-slate-800">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+            🔒
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Admin Mode Login</h3>
+            <p class="text-[11px] text-slate-400">Milestone College Exam Cell</p>
+          </div>
+        </div>
+        <button onclick="closeAdminLoginModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="handleAdminLoginSubmit(event)" class="space-y-4">
+        <div class="p-3 bg-blue-50/80 rounded-xl border border-blue-100 text-xs text-slate-600">
+          <p class="font-medium text-blue-900">Password Protected Area</p>
+          <p class="text-[11px] mt-0.5">Enter the administrator passcode to customize Google Form links. (Passcode: <strong>1234</strong>)</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Admin Passcode:</label>
+          <input 
+            id="admin-password-input" 
+            type="password" 
+            placeholder="Enter password (e.g. 1234)"
+            class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+          />
+        </div>
+
+        <div id="admin-login-error" class="hidden text-xs text-rose-600 font-semibold">
+          Incorrect passcode. Default passcode is 1234.
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeAdminLoginModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-xl shadow-xs">Login as Admin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       CUSTOMISE / EDIT LINK MODAL (Admin Only)
+       ========================================================================= -->
+  <div id="edit-link-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 border border-slate-200 text-slate-800">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Customise Subject Exam Link</h3>
+          <p id="edit-modal-subtitle" class="text-xs text-slate-500 font-medium"></p>
+        </div>
+        <button onclick="closeEditLinkModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+      </div>
+
+      <form onsubmit="handleSaveEditLink(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="edit-exam-id" />
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Subject Title:</label>
+          <input id="edit-exam-title" type="text" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Exam Status:</label>
+          <select id="edit-exam-status" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+            <option value="Live Now">Live Now (Accepting Submissions)</option>
+            <option value="Upcoming">Upcoming</option>
+            <option value="Completed">Completed / Closed</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Google Form URL:</label>
+          <input 
+            id="edit-exam-url" 
+            type="url" 
+            required 
+            placeholder="https://docs.google.com/forms/d/e/.../viewform"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-blue-600 focus:bg-white"
+          />
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeEditLinkModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-white bg-blue-700 hover:bg-blue-800 rounded-xl font-bold shadow-xs">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- =========================================================================
        GUIDELINES MODAL
@@ -280,7 +413,10 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
      * 🎓 MILESTONE COLLEGE EXAM PORTAL CONFIGURATION
      * Edit this array of objects to update subject names, exam status, and Google Form URLs.
      */
-    const EXAM_CONFIG = ${jsonExams};
+    let EXAM_CONFIG = ${jsonExams};
+
+    // Admin Mode state (Hidden by default for students)
+    let isAdmin = false;
 
     // Filter State
     let currentDept = 'All';
@@ -317,7 +453,7 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
         return matchesDept && matchesClass && matchesStatus && matchesSearch;
       });
 
-      countEl.textContent = \`Showing \${filtered.length} of \${EXAM_CONFIG.length} subjects\`;
+      countEl.textContent = 'Showing ' + filtered.length + ' of ' + EXAM_CONFIG.length + ' subjects';
 
       if (filtered.length === 0) {
         grid.innerHTML = '';
@@ -340,6 +476,16 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
           exam.department === 'Science' ? 'bg-blue-600' :
           exam.department === 'Commerce' ? 'bg-emerald-600' :
           exam.department === 'Arts' ? 'bg-purple-600' : 'bg-slate-700';
+
+        // Only show Customise/Edit button if logged in as Admin
+        const adminEditButton = isAdmin ? \`
+          <button 
+            onclick="openEditLinkModal('\${exam.id}')"
+            class="w-full mb-2.5 py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <span>✏️ Customise / Edit Link</span>
+          </button>
+        \` : '';
 
         return \`
           <div class="bg-white rounded-2xl border \${isLive ? 'border-emerald-300 ring-2 ring-emerald-500/15' : 'border-slate-200'} flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-md transition-all">
@@ -387,6 +533,8 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
               </div>
 
               <div class="pt-3 border-t border-slate-100 mt-2">
+                \${adminEditButton}
+
                 \${isLive ? \`
                   <a href="\${exam.googleFormUrl}" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all">
                     <span>Start Exam</span>
@@ -469,7 +617,72 @@ export function generateStandaloneHtml(exams: SubjectExam[], notices: NoticeItem
       renderCards();
     });
 
-    // Modal controls
+    // Admin Login Modal Controls
+    function openAdminLoginModal() {
+      document.getElementById('admin-password-input').value = '';
+      document.getElementById('admin-login-error').classList.add('hidden');
+      document.getElementById('admin-login-modal').classList.remove('hidden');
+      document.getElementById('admin-password-input').focus();
+    }
+
+    function closeAdminLoginModal() {
+      document.getElementById('admin-login-modal').classList.add('hidden');
+    }
+
+    function handleAdminLoginSubmit(e) {
+      e.preventDefault();
+      const pwd = document.getElementById('admin-password-input').value;
+      if (pwd === '1234') {
+        isAdmin = true;
+        closeAdminLoginModal();
+        document.getElementById('admin-active-bar').classList.remove('hidden');
+        renderCards();
+      } else {
+        document.getElementById('admin-login-error').classList.remove('hidden');
+      }
+    }
+
+    function handleAdminLogout() {
+      isAdmin = false;
+      document.getElementById('admin-active-bar').classList.add('hidden');
+      renderCards();
+    }
+
+    // Customise / Edit Link Modal Controls
+    function openEditLinkModal(examId) {
+      const exam = EXAM_CONFIG.find(e => e.id === examId);
+      if (!exam) return;
+      document.getElementById('edit-exam-id').value = exam.id;
+      document.getElementById('edit-exam-title').value = exam.title;
+      document.getElementById('edit-exam-status').value = exam.status;
+      document.getElementById('edit-exam-url').value = exam.googleFormUrl;
+      document.getElementById('edit-modal-subtitle').textContent = exam.department + ' • ' + exam.classLevel + ' (Code: ' + exam.code + ')';
+      document.getElementById('edit-link-modal').classList.remove('hidden');
+    }
+
+    function closeEditLinkModal() {
+      document.getElementById('edit-link-modal').classList.add('hidden');
+    }
+
+    function handleSaveEditLink(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-exam-id').value;
+      const title = document.getElementById('edit-exam-title').value;
+      const status = document.getElementById('edit-exam-status').value;
+      const url = document.getElementById('edit-exam-url').value;
+
+      const idx = EXAM_CONFIG.findIndex(item => item.id === id);
+      if (idx !== -1) {
+        EXAM_CONFIG[idx].title = title;
+        EXAM_CONFIG[idx].status = status;
+        EXAM_CONFIG[idx].googleFormUrl = url;
+      }
+
+      closeEditLinkModal();
+      renderCards();
+    }
+
+    // Guidelines Modal Controls
     function openGuidelinesModal() {
       document.getElementById('guidelines-modal').classList.remove('hidden');
     }
