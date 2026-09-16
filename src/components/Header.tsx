@@ -4,7 +4,6 @@ import {
   Clock, 
   GraduationCap, 
   SlidersHorizontal, 
-  Download, 
   HelpCircle, 
   Radio, 
   X,
@@ -18,7 +17,6 @@ interface HeaderProps {
   liveExamsCount: number;
   onOpenAdmin: () => void;
   onOpenInstructions: () => void;
-  onDownloadStandalone: () => void;
   isAdmin?: boolean;
   onAdminLogoutClick?: () => void;
 }
@@ -29,7 +27,6 @@ export const Header: React.FC<HeaderProps> = ({
   liveExamsCount,
   onOpenAdmin,
   onOpenInstructions,
-  onDownloadStandalone,
   isAdmin = false,
   onAdminLogoutClick,
 }) => {
@@ -199,17 +196,6 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Edit Links</span>
                 </button>
               )}
-
-              {/* Standalone HTML Download Button */}
-              <button
-                id="btn-download-standalone"
-                onClick={onDownloadStandalone}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
-                title="Download complete standalone HTML file"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Single HTML</span>
-              </button>
             </div>
           </div>
         </div>

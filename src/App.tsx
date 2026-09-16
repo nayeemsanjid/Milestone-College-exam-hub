@@ -13,7 +13,6 @@ import { AdminConfigModal } from './components/AdminConfigModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { ExamInstructionsModal } from './components/ExamInstructionsModal';
 import { Footer } from './components/Footer';
-import { generateStandaloneHtml } from './utils/generateStandaloneHtml';
 import { 
   Sparkles, 
   RotateCcw, 
@@ -22,7 +21,6 @@ import {
   ExternalLink, 
   CheckCircle2, 
   ShieldAlert,
-  FileDown,
   Lock,
   Unlock,
   LogOut
@@ -118,21 +116,6 @@ export default function App() {
     setIsAdminOpen(true);
   };
 
-  // Download Standalone HTML file with the active configuration
-  const handleDownloadStandalone = () => {
-    const htmlContent = generateStandaloneHtml(exams, notices);
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'milestone-college-exam-hub.html';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    showToast('Downloaded complete standalone single HTML file!');
-  };
-
   // Counts
   const liveExamsCount = useMemo(() => {
     return exams.filter((e) => e.status === 'Live Now').length;
@@ -185,7 +168,6 @@ export default function App() {
           setIsAdminOpen(true);
         }}
         onOpenInstructions={() => setIsGuidelinesOpen(true)}
-        onDownloadStandalone={handleDownloadStandalone}
         isAdmin={isAdmin}
         onAdminLogoutClick={handleAdminLogout}
       />
@@ -310,7 +292,7 @@ export default function App() {
                 </h4>
               </div>
               <p className="text-xs text-slate-600">
-                Easily update Google Form URLs and subject status using the live config manager, or download the self-contained single HTML file for offline distribution.
+                Easily update Google Form URLs and subject status using the live config manager.
               </p>
             </div>
 
@@ -323,14 +305,6 @@ export default function App() {
                 className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs"
               >
                 Open Link Manager
-              </button>
-
-              <button
-                onClick={handleDownloadStandalone}
-                className="px-3.5 py-2 bg-white hover:bg-slate-100 text-emerald-700 border border-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-2xs"
-              >
-                <FileDown className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Download HTML</span>
               </button>
             </div>
           </div>
@@ -364,7 +338,6 @@ export default function App() {
         onSaveExams={handleSaveExams}
         onResetExams={handleResetExams}
         targetExamId={targetExamIdForEdit}
-        onDownloadStandalone={handleDownloadStandalone}
       />
 
       {/* Exam Instructions / Guidelines Modal */}

@@ -10,8 +10,7 @@ import {
   Trash2, 
   SlidersHorizontal,
   Code,
-  AlertCircle,
-  FileDown
+  AlertCircle
 } from 'lucide-react';
 import { SubjectExam, ExamStatus, Department, ClassLevel } from '../types';
 
@@ -22,7 +21,6 @@ interface AdminConfigModalProps {
   onSaveExams: (updated: SubjectExam[]) => void;
   onResetExams: () => void;
   targetExamId?: string | null;
-  onDownloadStandalone: () => void;
 }
 
 export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
@@ -32,7 +30,6 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
   onSaveExams,
   onResetExams,
   targetExamId,
-  onDownloadStandalone,
 }) => {
   const [localExams, setLocalExams] = useState<SubjectExam[]>([]);
   const [activeTab, setActiveTab] = useState<'editor' | 'codeView'>('editor');
@@ -178,15 +175,6 @@ const EXAM_CONFIG = ${JSON.stringify(localExams, null, 2)};`;
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Default</span>
-            </button>
-
-            <button
-              onClick={onDownloadStandalone}
-              className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-semibold flex items-center gap-1 transition-colors"
-              title="Download full single HTML file"
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              <span>Download HTML</span>
             </button>
           </div>
         </div>
