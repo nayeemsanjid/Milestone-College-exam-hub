@@ -13,6 +13,14 @@ import { AdminConfigModal } from './components/AdminConfigModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { ExamInstructionsModal } from './components/ExamInstructionsModal';
 import { Footer } from './components/Footer';
+import { AdminPage } from './components/AdminPage';
+import { 
+  isSupabaseConfigured,
+  fetchExamsFromSupabase,
+  updateExamInSupabase,
+  seedExamsToSupabase,
+  subscribeToExamChanges
+} from './lib/supabase';
 import { 
   Sparkles, 
   RotateCcw, 
@@ -23,13 +31,22 @@ import {
   ShieldAlert,
   Lock,
   Unlock,
-  LogOut
+  LogOut,
+  Radio,
+  Database
 } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'mc_exam_hub_config_v1';
 const ADMIN_SESSION_KEY = 'mc_exam_hub_admin';
 
 export default function App() {
+  // Navigation view mode ('portal' = student portal, 'admin' = admin link management console)
+  const [viewMode, setViewMode] = useState<'portal' | 'admin'>(() => {
+    return window.location.hash === '#admin' ? 'admin' : 'portal';
+  });
+
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
+
   // Load exams from localStorage or default configuration
   const [exams, setExams] = useState<SubjectExam[]>(() => {
     try {
@@ -67,8 +84,96 @@ export default function App() {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Real-time synchronization with Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+
+    let isMounted = true;
+
+    // 1. Initial Fetch from Supabase Table
+    fetchExamsFromSupabase().then((cloudExams) => {
+      if (!isMounted) return;
+      if (cloudExams && cloudExams.length > 0) {
+        setExams(cloudExams);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cloudExams));
+        } catch (e) {
+          console.warn(e);
+        }
+      } else if (cloudExams && cloudExams.length === 0) {
+        // First run with clean Supabase table: seed initial Milestone College data
+        seedExamsToSupabase(INITIAL_EXAMS_CONFIG).then((success) => {
+          if (success) {
+            console.log('[Supabase] Automatically seeded default exams to table');
+          }
+        });
+      }
+    });
+
+    // 2. Real-Time Postgres Change Listener
+    const unsubscribe = subscribeToExamChanges(
+      (updatedExam) => {
+        setExams((prev) => {
+          const next = prev.map((e) => (e.id === updatedExam.id ? updatedExam : e));
+          if (!prev.some((e) => e.id === updatedExam.id)) {
+            next.push(updatedExam);
+          }
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
+          } catch (e) {
+            console.warn(e);
+          }
+          return next;
+        });
+        showToast(`⚡ Real-time: ${updatedExam.title} updated to "${updatedExam.status}"`);
+      },
+      (newExam) => {
+        setExams((prev) => {
+          if (prev.some((e) => e.id === newExam.id)) return prev;
+          const next = [...prev, newExam];
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
+          } catch (e) {
+            console.warn(e);
+          }
+          return next;
+        });
+        showToast(`⚡ Real-time: Added new exam "${newExam.title}"`);
+      }
+    );
+
+    if (unsubscribe) {
+      setIsRealtimeConnected(true);
+    }
+
+    return () => {
+      isMounted = false;
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // Sync hash routing
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#admin') {
+        if (isAdmin) {
+          setViewMode('admin');
+        } else {
+          setIsAdminLoginOpen(true);
+        }
+      } else {
+        setViewMode('portal');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [isAdmin]);
 
   const handleAdminLoginSuccess = () => {
     setIsAdmin(true);
@@ -78,12 +183,16 @@ export default function App() {
     } catch (e) {
       console.warn(e);
     }
-    showToast('Admin Mode unlocked! Customise buttons are now enabled on subject cards.');
+    setViewMode('admin');
+    window.location.hash = 'admin';
+    showToast('Admin Mode unlocked! You can now edit Google Form links live.');
   };
 
   const handleAdminLogout = () => {
     setIsAdmin(false);
     setIsAdminOpen(false);
+    setViewMode('portal');
+    window.location.hash = '';
     try {
       sessionStorage.removeItem(ADMIN_SESSION_KEY);
     } catch (e) {
@@ -92,8 +201,22 @@ export default function App() {
     showToast('Exited Admin Mode. Regular student view active.');
   };
 
-  // Save to localStorage whenever exams state changes
-  const handleSaveExams = (updated: SubjectExam[]) => {
+  const handleOpenAdminPage = () => {
+    if (isAdmin) {
+      setViewMode('admin');
+      window.location.hash = 'admin';
+    } else {
+      setIsAdminLoginOpen(true);
+    }
+  };
+
+  const handleBackToPortal = () => {
+    setViewMode('portal');
+    window.location.hash = '';
+  };
+
+  // Save to localStorage and Supabase whenever exams state changes
+  const handleSaveExams = async (updated: SubjectExam[]) => {
     setExams(updated);
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
@@ -101,12 +224,35 @@ export default function App() {
     } catch (e) {
       console.error('Could not save to localStorage', e);
     }
+
+    if (isSupabaseConfigured()) {
+      await seedExamsToSupabase(updated);
+    }
+  };
+
+  const handleUpdateSingleExam = async (updated: SubjectExam) => {
+    setExams((prev) => {
+      const next = prev.map((e) => (e.id === updated.id ? updated : e));
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.warn(e);
+      }
+      return next;
+    });
+
+    if (isSupabaseConfigured()) {
+      await updateExamInSupabase(updated);
+    }
   };
 
   const handleResetExams = () => {
     if (confirm('Reset all exam links and statuses to original Milestone College defaults?')) {
       setExams(INITIAL_EXAMS_CONFIG);
       localStorage.removeItem(LOCAL_STORAGE_KEY);
+      if (isSupabaseConfigured()) {
+        seedExamsToSupabase(INITIAL_EXAMS_CONFIG);
+      }
       showToast('Reset to default Milestone College configuration.');
     }
   };
@@ -148,6 +294,29 @@ export default function App() {
     setSearchQuery('');
   };
 
+  // If admin console mode is selected
+  if (viewMode === 'admin' && isAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex flex-col justify-between">
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2 animate-fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+        <AdminPage
+          exams={exams}
+          onUpdateExam={handleUpdateSingleExam}
+          onUpdateAllExams={handleSaveExams}
+          onBackToPortal={handleBackToPortal}
+          onLogout={handleAdminLogout}
+          showToast={showToast}
+          isRealtimeConnected={isRealtimeConnected}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans selection:bg-blue-600 selection:text-white">
       {/* Toast Notification */}
@@ -167,6 +336,7 @@ export default function App() {
           setTargetExamIdForEdit(null);
           setIsAdminOpen(true);
         }}
+        onOpenAdminPage={handleOpenAdminPage}
         onOpenInstructions={() => setIsGuidelinesOpen(true)}
         isAdmin={isAdmin}
         onAdminLogoutClick={handleAdminLogout}
@@ -183,10 +353,17 @@ export default function App() {
               </span>
               <span className="font-bold text-emerald-400">Admin Mode Active:</span>
               <span className="text-slate-300">
-                Logged in as Exam Administrator. 'Customise / Edit Link' buttons are enabled on all subject cards.
+                Logged in as Exam Administrator. You can edit links inline or open the Admin Console.
               </span>
             </div>
             <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                onClick={handleOpenAdminPage}
+                className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+              >
+                <Lock className="w-3 h-3 text-emerald-200" />
+                <span>Admin Console</span>
+              </button>
               <button
                 onClick={() => {
                   setTargetExamIdForEdit(null);
@@ -194,14 +371,14 @@ export default function App() {
                 }}
                 className="px-2.5 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded-lg text-xs font-semibold transition-colors"
               >
-                Manage All Links
+                Quick Modal
               </button>
               <button
                 onClick={handleAdminLogout}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-rose-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
               >
                 <LogOut className="w-3 h-3" />
-                <span>Exit Admin Mode</span>
+                <span>Exit</span>
               </button>
             </div>
           </div>
@@ -223,6 +400,12 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            {isRealtimeConnected && (
+              <span className="inline-flex items-center gap-1 text-emerald-700 text-[11px] font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Supabase Sync</span>
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               {liveExamsCount} Active Form{liveExamsCount !== 1 ? 's' : ''}
@@ -292,19 +475,26 @@ export default function App() {
                 </h4>
               </div>
               <p className="text-xs text-slate-600">
-                Easily update Google Form URLs and subject status using the live config manager.
+                Easily update Google Form URLs and subject status using the live config manager or open the full Admin Console.
               </p>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
+                onClick={handleOpenAdminPage}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Open Admin Console</span>
+              </button>
+              <button
                 onClick={() => {
                   setTargetExamIdForEdit(null);
                   setIsAdminOpen(true);
                 }}
-                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+                className="px-3.5 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold rounded-xl transition-all shadow-xs"
               >
-                Open Link Manager
+                Quick Modal
               </button>
             </div>
           </div>
@@ -318,6 +508,7 @@ export default function App() {
           setTargetExamIdForEdit(null);
           setIsAdminOpen(true);
         }}
+        onOpenAdminPage={handleOpenAdminPage}
         isAdmin={isAdmin}
         onAdminLoginClick={() => setIsAdminLoginOpen(true)}
         onAdminLogoutClick={handleAdminLogout}

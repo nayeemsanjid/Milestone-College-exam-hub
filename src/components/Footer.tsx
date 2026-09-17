@@ -19,6 +19,7 @@ import { COLLEGE_INFO } from '../config/examData';
 interface FooterProps {
   onOpenGuidelines: () => void;
   onOpenAdmin: () => void;
+  onOpenAdminPage?: () => void;
   isAdmin: boolean;
   onAdminLoginClick: () => void;
   onAdminLogoutClick: () => void;
@@ -27,6 +28,7 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ 
   onOpenGuidelines, 
   onOpenAdmin,
+  onOpenAdminPage,
   isAdmin,
   onAdminLoginClick,
   onAdminLogoutClick
@@ -89,11 +91,11 @@ export const Footer: React.FC<FooterProps> = ({
                 <>
                   <li>
                     <button
-                      onClick={onOpenAdmin}
+                      onClick={onOpenAdminPage || onOpenAdmin}
                       className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5 font-semibold"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
-                      <span>Link Config Hub (Admin)</span>
+                      <span>Admin Console & Link Manager</span>
                     </button>
                   </li>
                   <li>
